@@ -1,0 +1,1 @@
+const graphqlEndpoint = window.location.origin
