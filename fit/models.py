@@ -73,6 +73,7 @@ class Excercise(models.Model):
    exercise=models.CharField(max_length=50)
    sets=models.IntegerField()
    reps=models.IntegerField()
+   duration=models.IntegerField(default=0)
 
    def __str__(self) -> str:
       return f"{self.exercise}-{self.reps}"

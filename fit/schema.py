@@ -4,6 +4,8 @@ import graphene
 import graphql_jwt
 from .models import User,Friends,Workouts,Excercise
 from graphql import GraphQLError
+from django.db.models import Avg,Sum
+
 
 class LoggedinUser(graphene.ObjectType):
     loggedin_user=graphene.Field(UserGet)
@@ -45,6 +47,7 @@ class WorkoutQuery(graphene.ObjectType):
     
 class ExerciseQuery(graphene.ObjectType):
     exercise=graphene.List(ExcerciseGet,id=graphene.String())
+    sumduration=graphene.Int()
 
     def resolve_exercise(root,info,id=None):
         user=info.context.user
@@ -53,8 +56,9 @@ class ExerciseQuery(graphene.ObjectType):
             return workouts
         workouts=Workouts.objects.filter(user=user.id)
         exercises=Excercise.objects.filter(workout__in=(obj.id for obj in workouts))
-        print(exercises)
         return exercises
+    # def resolve_sumduration(root,info,id=None):
+    #     exercises=Excercise.objects.filter(workout__in=(obj.id for obj in workouts)).aggregate(Sum("duration"))
 
 
 

@@ -13,7 +13,6 @@ class WorkOutGet(DjangoObjectType):
     class Meta:
         model=Workouts
         fields=("id","name","description","exercise")
-        # interfaces = (relay.Node,)
 
 
 class TrackingsGet(DjangoObjectType):

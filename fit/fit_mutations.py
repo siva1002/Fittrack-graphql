@@ -39,6 +39,7 @@ class WorkOutCreate(graphene.Mutation):
 class FriendsCreate(graphene.Mutation):
     friend=graphene.Field(FriendsGet)
     message=graphene.String()
+    
     class Arguments:
         frienddata=FriendsInputs(required=True)
 
@@ -68,22 +69,23 @@ class ExcerciseCreate(graphene.Mutation):
 class TrackingCreate(graphene.Mutation):
     trackings=graphene.Field(TrackingsGet)
     message=graphene.String()
+    status=graphene.Boolean()
     class Arguments:
         trackingsdata=TrackInputs(required=True)
 
     @classmethod
     def mutate(cls,root,info,trackingsdata):
         user=info.context.user
-        utctime=datetime.now(tz=timezone.utc)
-        workouts=Workouts.objects.filter(Q(user=user,track__time__range=[utctime,utctime])|Q(user=user,track__started =True)).values("track__started","track__time")
+        utctime=datetime.now(tz=timezone.utc).date()
+        workouts=Workouts.objects.filter(Q(user=user,track__time__contains=utctime,pk=trackingsdata.workout)|Q(user=user,track__started =True)).values("track__started","track__time")
+        print(workouts)
         if not workouts:
             workoutobj=Workouts.objects.get(id=trackingsdata.workout)
             d =timedelta(days=0)
-            print(d)
             track=Trackings.objects.create(workout=workoutobj,started=trackingsdata.start,duration=d)
             track.save()
-            return TrackingCreate(trackings=track)
-        return {"message":"complete the previous workout or you have did this workout today"}
+            return TrackingCreate(trackings=track,message=f" Workout {workoutobj.name} Started" ,status=True)
+        return {"message":"complete the previous workout or you have did this workout today","status":False}
 
 class TrackingUpdate(graphene.Mutation):
     trackings=graphene.Field(TrackingsGet)
@@ -96,14 +98,15 @@ class TrackingUpdate(graphene.Mutation):
         user=info.context.user
         try:
             workouts=Workouts.objects.get(user=user,track__started =True)
-        except:
+        except Exception as e:
+            print(e)
             workouts=[]
         if workouts:
-            track=Trackings.objects.get(workout=workouts.id,started=True)
+            track=Trackings.objects.filter(workout=workouts.id,started=True).last()
             startedtime=track.time
             currenttime =datetime.now().replace(tzinfo=pytz.UTC)
             calduration=currenttime-startedtime
-            Trackings.objects.update(started=False,duration=calduration,time=currenttime)
+            Trackings.objects.update(workout=workouts.id,started=False,duration=calduration,time=currenttime)
             return TrackingUpdate(trackings=track,message="updated")
         return {"message":"workout is not started"}
 
