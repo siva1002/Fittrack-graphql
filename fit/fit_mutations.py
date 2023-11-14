@@ -18,7 +18,6 @@ class UserCreate(graphene.Mutation):
     def mutate(cls,root,info,userdata=None,**kwargs):
         if userdata.password != userdata.confirmpassword:
             return GraphQLError('Password and Confirm password not match')
-        # friend=User.objects.get(pk=userdata.friend) if userdata.friend else {}
         user=User.objects.create(username=userdata.username,email=userdata.email)
         user.set_password(userdata.password)
         user.save()
@@ -78,7 +77,6 @@ class TrackingCreate(graphene.Mutation):
         user=info.context.user
         utctime=datetime.now(tz=timezone.utc).date()
         workouts=Workouts.objects.filter(Q(user=user,track__time__contains=utctime,pk=trackingsdata.workout)|Q(user=user,track__started =True)).values("track__started","track__time")
-        print(workouts)
         if not workouts:
             workoutobj=Workouts.objects.get(id=trackingsdata.workout)
             d =timedelta(days=0)
@@ -106,7 +104,9 @@ class TrackingUpdate(graphene.Mutation):
             startedtime=track.time
             currenttime =datetime.now().replace(tzinfo=pytz.UTC)
             calduration=currenttime-startedtime
-            Trackings.objects.update(workout=workouts.id,started=False,duration=calduration,time=currenttime)
+            track.duration=calduration
+            track.started=False
+            track.save()
             return TrackingUpdate(trackings=track,message="updated")
         return {"message":"workout is not started"}
 
