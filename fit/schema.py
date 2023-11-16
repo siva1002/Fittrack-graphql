@@ -33,13 +33,20 @@ class FriendsQuery(graphene.ObjectType):
 
     def resolve_friends(root,info):
         user=info.context.user
-        friends=Friends.objects.filter(user=user)
+        friends=Friends.objects.filter(user=user,accepted=True)
         return friends
     
     def resolve_friendscount(root,info):
         return info.context.user.friends.all().count()
 
+class FriendRequestQuery(graphene.ObjectType):
+    friendsrequests=graphene.List(FriendsGet)
 
+    def resolve_friendsrequests(root,info):
+        user=info.context.user
+        friends=Friends.objects.filter(user=user,accepted=False)
+        return friends
+    
 class WorkoutQuery(graphene.ObjectType):
     workout=graphene.List(WorkOutGet)
 
@@ -92,7 +99,7 @@ class Mutation(graphene.ObjectType):
     verify_token = graphql_jwt.Verify.Field()
     refresh_token = graphql_jwt.Refresh.Field()
 
-class Query(UserQuery,LoggedinUser,WorkoutQuery,FriendsQuery,ExerciseQuery,TrackingsQuery):
+class Query(UserQuery,LoggedinUser,WorkoutQuery,FriendsQuery,ExerciseQuery,TrackingsQuery,FriendRequestQuery):
     pass
 
 schema=graphene.Schema(query=Query,mutation=Mutation)

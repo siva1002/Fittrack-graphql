@@ -94,6 +94,7 @@ class Trackings(models.Model):
 class Friends(models.Model):
    user=models.ForeignKey(User,on_delete=models.CASCADE,related_name="friends")
    userfriend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='user')
+   accepted=models.BooleanField(default=False)
 
    def __str__(self) -> str:
       return f"{self.userfriend} {self.user.username}"

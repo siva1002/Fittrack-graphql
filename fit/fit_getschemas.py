@@ -28,6 +28,7 @@ class WorkOutGet(DjangoObjectType):
 class TrackingsGet(DjangoObjectType):
     class Meta:
         model=Trackings
+        
         fields=("workout","duration")
     
     def resolve_duration(self, info):
@@ -38,6 +39,7 @@ class FriendsGet(DjangoObjectType):
     class Meta:
         model=Friends
         fields="__all__"
+        
 
 class ExcerciseGet(DjangoObjectType):
     class Meta:

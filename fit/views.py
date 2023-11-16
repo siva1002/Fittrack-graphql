@@ -9,6 +9,7 @@ def baseview(request):
     if request.method == 'POST':
         username,password=request.POST.get('username'),request.POST.get('password')
         user=authenticate(request=request,username=username,password=password)
+        print(user)
         if user:
             login(request,user)
     if request.user.is_authenticated:
