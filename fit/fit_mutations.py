@@ -69,6 +69,7 @@ class TrackingCreate(graphene.Mutation):
     trackings=graphene.Field(TrackingsGet)
     message=graphene.String()
     status=graphene.Boolean()
+    incompleteworkout=graphene.List(WorkOutGet)
     class Arguments:
         trackingsdata=TrackInputs(required=True)
 
@@ -76,14 +77,16 @@ class TrackingCreate(graphene.Mutation):
     def mutate(cls,root,info,trackingsdata):
         user=info.context.user
         utctime=datetime.now(tz=timezone.utc).date()
-        workouts=Workouts.objects.filter(Q(user=user,track__time__contains=utctime,pk=trackingsdata.workout)|Q(user=user,track__started =True)).values("track__started","track__time")
-        if not workouts:
+        # Q(user=user,track__time__contains=utctime,pk=trackingsdata.workout)|
+        incompleteworkout=Workouts.objects.filter(Q(user=user,track__started =True)).last()
+        if not incompleteworkout :
+            print(incompleteworkout)
             workoutobj=Workouts.objects.get(id=trackingsdata.workout)
             d =timedelta(days=0)
             track=Trackings.objects.create(workout=workoutobj,started=trackingsdata.start,duration=d)
             track.save()
             return TrackingCreate(trackings=track,message=f" Workout {workoutobj.name} Started" ,status=True)
-        return {"message":"complete the previous workout or you have did this workout today","status":False}
+        return TrackingCreate(incompleteworkout=incompleteworkout,message=f"Complete this previous workout",status=True)
 
 class TrackingUpdate(graphene.Mutation):
     trackings=graphene.Field(TrackingsGet)

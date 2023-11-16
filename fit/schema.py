@@ -45,7 +45,9 @@ class WorkoutQuery(graphene.ObjectType):
 
     def resolve_workout(root,info):
         user=info.context.user
-        workouts=Workouts.objects.filter(user=user).annotate(totalduration=Sum("track__duration"))
+        workouts=Workouts.objects.filter(Q(user=user,track__started =True)).annotate(totalduration=Sum("track__duration"))
+        if not workouts:
+            workouts=Workouts.objects.filter(user=user).annotate(totalduration=Sum("track__duration"))
 
         return workouts
     
