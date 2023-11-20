@@ -1,5 +1,7 @@
 import graphene
-from .fit_inputschemas import UserInputs, WorkOutInputs, FriendsInputs, ExcerciseInputs, TrackInputs, TrackUpdateInputs
+from .fit_inputschemas import (UserInputs, WorkOutInputs, FriendsInputs, 
+                               ExcerciseInputs, TrackInputs, TrackUpdateInputs,
+                               FriendRequestStatusInputs)
 from .fit_getschemas import UserGet, WorkOutGet, TrackingsGet, FriendsGet, ExcerciseGet
 from .models import User, Workouts, Trackings, Friends, Excercise
 from graphql import GraphQLError
@@ -53,7 +55,6 @@ class FriendsCreate(graphene.Mutation):
     def mutate(cls, root, info, frienddata):
         user = User.objects.get(username__iexact=frienddata.name)
         exist = info.context.user.friends.filter(userfriend=user).exists()
-        print(user and not exist)
         channel_layer = get_channel_layer()
         if user and not exist:
             frdobj = Friends.objects.create(
@@ -61,7 +62,6 @@ class FriendsCreate(graphene.Mutation):
             async_to_sync(channel_layer.group_send)(str(user.id), {
                 "type": "sendMessage", "message": f"User sent friend creation request {info.context.user.username}"})
             return FriendsCreate(friend=frdobj)
-        print(str(user.id))
         async_to_sync(channel_layer.group_send)(str(user.id), {
             "type": "sendMessage", "message": f"User sent friend creation request {info.context.user.username}"})
         friend = Friends.objects.get(
@@ -81,7 +81,7 @@ class ExcerciseCreate(graphene.Mutation):
         workout = Workouts.objects.get(id=exercisedata.workoutid)
         if workout:
             obj = Excercise.objects.create(
-                workout=workout, exercise=exercisedata.exercise, reps=exercisedata.reps, sets=exercisedata.sets)
+                workout=workout, exercise=exercisedata.exercise, reps=exercisedata.reps, sets=exercisedata.sets,duration=exercisedata.duration)
             return ExcerciseCreate(exercise=obj, message=f"Exercise Create {obj.exercise}")
 
 
@@ -138,3 +138,22 @@ class TrackingUpdate(graphene.Mutation):
             track.save()
             return TrackingUpdate(trackings=track, message="updated")
         return {"message": "workout is not started"}
+
+
+class AcceptOrRejectFriendRequest(graphene.Mutation):
+    status=graphene.String()
+    class Arguments:
+        requestdata=FriendRequestStatusInputs(required=True)
+
+    @classmethod
+    def mutate(cls, root, info, requestdata):
+        request=Friends.objects.get(id=requestdata.id)
+        if request:
+            request.requeststatus="Accepted" if "accept" in requestdata.status else "Rejected"
+            request.accepted=True if "accept" in requestdata.status else False
+            request.save()
+        return AcceptOrRejectFriendRequest(status=requestdata.status)
+        
+
+
+

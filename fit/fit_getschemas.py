@@ -9,7 +9,7 @@ import datetime
 class UserGet(DjangoObjectType):
     class Meta:
         model=User
-        fields=("email","username")
+        fields=("email","username","id","workouts")
 
 class WorkOutGet(DjangoObjectType):
     class Meta:

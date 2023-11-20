@@ -2,6 +2,12 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 from django.utils import timezone
+
+REQUEST_STATUS = [
+    ("ACC", "Accepted"),
+    ("REJ", "Rejected"),
+    ("PEN", "Pending"),
+]
 class UserManager(BaseUserManager):
   
 
@@ -92,9 +98,10 @@ class Trackings(models.Model):
         return f"{self.workout}-{self.duration}"
 
 class Friends(models.Model):
-   user=models.ForeignKey(User,on_delete=models.CASCADE,related_name="friends")
-   userfriend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='user')
+   user=models.ForeignKey(User,on_delete=models.CASCADE,related_name="user")
+   userfriend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='friends')
    accepted=models.BooleanField(default=False)
+   requeststatus=models.CharField(choices=REQUEST_STATUS,default=REQUEST_STATUS[-1][1],max_length=20)
 
    def __str__(self) -> str:
       return f"{self.userfriend} {self.user.username}"

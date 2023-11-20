@@ -18,6 +18,7 @@ class ExcerciseInputs(graphene.InputObjectType):
     exercise=graphene.String(required=True)
     reps=graphene.Int()
     sets=graphene.Int()
+    duration=graphene.Int()
     workoutid=graphene.Int()
 
 class TrackInputs(graphene.InputObjectType):
@@ -26,3 +27,8 @@ class TrackInputs(graphene.InputObjectType):
     
 class TrackUpdateInputs(graphene.InputObjectType):
     workout=graphene.Int()
+
+
+class FriendRequestStatusInputs(graphene.InputObjectType):
+    id=graphene.String()
+    status=graphene.String()
