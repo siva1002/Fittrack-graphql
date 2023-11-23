@@ -10,6 +10,7 @@ class UserInputs(graphene.InputObjectType):
 class WorkOutInputs(graphene.InputObjectType):
     name=graphene.String(required=True)
     description=graphene.String(required=True)
+    category=graphene.String(required=True)
 
 class FriendsInputs(graphene.InputObjectType):
     name=graphene.String(required=True)
@@ -26,6 +27,10 @@ class TrackInputs(graphene.InputObjectType):
     workout=graphene.Int()
     
 class TrackUpdateInputs(graphene.InputObjectType):
+    workout=graphene.Int()
+
+class CreateChallengeInputs(graphene.InputObjectType):
+    user=graphene.Int()
     workout=graphene.Int()
 
 

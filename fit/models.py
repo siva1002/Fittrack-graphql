@@ -8,6 +8,8 @@ REQUEST_STATUS = [
     ("REJ", "Rejected"),
     ("PEN", "Pending"),
 ]
+
+CATEGORY=[('CARDIO','Cardio'),("WORKOUT","Workout")]
 class UserManager(BaseUserManager):
   
 
@@ -69,6 +71,7 @@ class Workouts(models.Model):
       verbose_name="Workout"
    user=models.ForeignKey(User, related_name="workouts",on_delete=models.CASCADE)
    name=models.CharField(max_length=50)
+   category=models.CharField(choices=CATEGORY,default='WORKOUT',max_length=30)
    description=models.CharField(max_length=100)
 
    def __str__(self) -> str:
@@ -98,10 +101,20 @@ class Trackings(models.Model):
         return f"{self.workout}-{self.duration}"
 
 class Friends(models.Model):
-   user=models.ForeignKey(User,on_delete=models.CASCADE,related_name="user")
-   userfriend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='friends')
+   user=models.ForeignKey(User,on_delete=models.CASCADE,related_name="following")
+   userfriend=models.ForeignKey(User,on_delete=models.CASCADE,related_name='followers')
    accepted=models.BooleanField(default=False)
    requeststatus=models.CharField(choices=REQUEST_STATUS,default=REQUEST_STATUS[-1][1],max_length=20)
 
    def __str__(self) -> str:
       return f"{self.userfriend} {self.user.username}"
+   
+class Challenges(models.Model):
+   user=models.ForeignKey(User,on_delete=models.CASCADE,related_name="challenges")
+   challenge=models.ForeignKey(Workouts,on_delete=models.CASCADE,related_name="challengeworkout")
+   challengeduser=models.ForeignKey(User,on_delete=models.CASCADE,related_name="createdchallenges")
+   class Meta:
+      db_table='Challenges'
+
+   def __str__(self) -> str:
+      return f"{self.challenge}-{self.challengeduser}-{self.user}"

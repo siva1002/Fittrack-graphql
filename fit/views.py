@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate,login,logout
 from .forms import LoginForm
 from django.http import HttpResponse
 import requests
+from .models import User,Workouts
 # Create your views here.
 def baseview(request):
     form=LoginForm()
@@ -23,3 +24,9 @@ def logoutview(request):
 
 def homeview(request):
     return render(request, 'home.html')
+
+def graphqlview(request):
+    if request.method == 'GET':
+        user=request.user
+        
+    return HttpResponse("Hi")

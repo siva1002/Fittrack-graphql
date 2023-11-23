@@ -1,13 +1,13 @@
 import graphene
 from .fit_inputschemas import (UserInputs, WorkOutInputs, FriendsInputs, 
                                ExcerciseInputs, TrackInputs, TrackUpdateInputs,
-                               FriendRequestStatusInputs)
+                               FriendRequestStatusInputs, CreateChallengeInputs)
 from .fit_getschemas import UserGet, WorkOutGet, TrackingsGet, FriendsGet, ExcerciseGet
-from .models import User, Workouts, Trackings, Friends, Excercise
+from .models import User, Workouts, Trackings, Friends, Excercise,Challenges
 from graphql import GraphQLError
 from datetime import datetime, timedelta, date
 import pytz
-from django.db.models import F, Q
+from django.db.models import Q,Subquery,F
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -39,7 +39,7 @@ class WorkOutCreate(graphene.Mutation):
     @classmethod
     def mutate(cls, root, info, workoutdata):
         workout = Workouts.objects.create(
-            name=workoutdata.name, description=workoutdata.description, user=info.context.user)
+            name=workoutdata.name, description=workoutdata.description, user=info.context.user,category=workoutdata.category)
         workout.save()
         return WorkOutCreate(workout=workout)
 
@@ -54,7 +54,7 @@ class FriendsCreate(graphene.Mutation):
     @classmethod
     def mutate(cls, root, info, frienddata):
         user = User.objects.get(username__iexact=frienddata.name)
-        exist = info.context.user.friends.filter(userfriend=user).exists()
+        exist = info.context.user.following.filter(userfriend=user).exists()
         channel_layer = get_channel_layer()
         if user and not exist:
             frdobj = Friends.objects.create(
@@ -79,17 +79,18 @@ class ExcerciseCreate(graphene.Mutation):
     @classmethod
     def mutate(cls, root, info, exercisedata):
         workout = Workouts.objects.get(id=exercisedata.workoutid)
-        if workout:
+        if workout and 'workout' in workout.category:
             obj = Excercise.objects.create(
                 workout=workout, exercise=exercisedata.exercise, reps=exercisedata.reps, sets=exercisedata.sets,duration=exercisedata.duration)
             return ExcerciseCreate(exercise=obj, message=f"Exercise Create {obj.exercise}")
+        return ExcerciseCreate(exercise={},message=f'Creating exercise is not applicable for non "Workout" category workout')
 
 
 class TrackingCreate(graphene.Mutation):
     trackings = graphene.Field(TrackingsGet)
     message = graphene.String()
     status = graphene.Boolean()
-    incompleteworkout = graphene.List(WorkOutGet)
+    # prev = graphene.Field(WorkOutGet)
 
     class Arguments:
         trackingsdata = TrackInputs(required=True)
@@ -99,22 +100,22 @@ class TrackingCreate(graphene.Mutation):
         user = info.context.user
         utctime = datetime.now(tz=timezone.utc).date()
         # Q(user=user,track__time__contains=utctime,pk=trackingsdata.workout)|
-        incompleteworkout = Workouts.objects.filter(
+        incompleteworkout = Workouts.objects.prefetch_related("track").filter(
             Q(user=user, track__started=True)).last()
         if not incompleteworkout:
-            print(incompleteworkout)
             workoutobj = Workouts.objects.get(id=trackingsdata.workout)
             d = timedelta(days=0)
             track = Trackings.objects.create(
                 workout=workoutobj, started=trackingsdata.start, duration=d)
             track.save()
             return TrackingCreate(trackings=track, message=f" Workout {workoutobj.name} Started", status=True)
-        return TrackingCreate(incompleteworkout=incompleteworkout, message=f"Complete this previous workout", status=True)
+        return TrackingCreate(message=f"Complete this previous workout", status=True)
 
 
 class TrackingUpdate(graphene.Mutation):
     trackings = graphene.Field(TrackingsGet)
     message = graphene.String()
+    status=graphene.Int()
 
     class Arguments:
         trackingsdata = TrackUpdateInputs(required=True)
@@ -136,7 +137,7 @@ class TrackingUpdate(graphene.Mutation):
             track.duration = calduration
             track.started = False
             track.save()
-            return TrackingUpdate(trackings=track, message="updated")
+            return TrackingUpdate(trackings=track, message="updated",status=200)
         return {"message": "workout is not started"}
 
 
@@ -155,5 +156,33 @@ class AcceptOrRejectFriendRequest(graphene.Mutation):
         return AcceptOrRejectFriendRequest(status=requestdata.status)
         
 
+class RemoveFollower(graphene.Mutation):
+    message=graphene.String()
+    class Arguments:
+        id=graphene.String()
+    
+    @classmethod
+    def mutate(cls, root, info, id):
+        user=info.context.user
+        obj=Friends.objects.get(user=user,userfriend=id)
+        if obj:
+            obj.delete()
+        return RemoveFollower(message={"message":f"Unfollowed user {obj.username}"})
 
+class CreateChallenge(graphene.Mutation):
+    message=graphene.String()
+    class Arguments:
+        cha=CreateChallengeInputs()
+
+    @classmethod
+    def mutate(cls, root, info, cha):
+        user=info.context.user
+        workout=user.workouts.get(id=cha.workout)
+        challengeuser=User.objects.prefetch_related('challenges').get(pk=cha.user)
+        exist=challengeuser.challenges.filter(challenge=cha.workout).exists()
+        if workout and not exist:
+            createchallenge=Challenges.objects.create(user=challengeuser,challenge=workout,challengeduser=user)
+            createchallenge.save()
+            return CreateChallenge(message=f"{workout.name} challenged for user {challengeuser.username}")
+        return CreateChallenge(message=f"{workout.name} already challenged {challengeuser.username}")
 
